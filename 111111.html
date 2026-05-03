@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<!-- saved from url=(0072)file:///Users/dariaholoskokova/Downloads/whimsygames-ai-dashboard_1.html -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Search Attribution — Whimsy Games</title>
+<script src="./111111_files/chart.umd.min.js"></script>
+<link href="./111111_files/css2" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0b0f;
+    --surface: #111318;
+    --surface2: #181b23;
+    --border: #22263a;
+    --accent: #6c63ff;
+    --accent2: #ff5e8a;
+    --accent3: #00e5b0;
+    --accent4: #ffb64d;
+    --text: #e8eaf6;
+    --muted: #636b8a;
+    --chatgpt: #10a37f;
+    --perplexity: #20b2aa;
+    --gemini: #4285f4;
+    --claude: #d97706;
+    --copilot: #7c3aed;
+    --growth: #00e5b0;
+    --decline: #ff5e8a;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* HEADER */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(12px);
+  }
+  .header-left { display: flex; align-items: center; gap: 14px; }
+  .logo-mark {
+    width: 38px; height: 38px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .header-title { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
+  .header-sub { font-size: 12px; color: var(--muted); font-family: 'DM Mono', monospace; margin-top: 1px; }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .badge {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    color: var(--muted);
+  }
+  .badge.live { border-color: var(--accent3); color: var(--accent3); }
+  .badge.live::before {
+    content: '●';
+    margin-right: 5px;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  /* LAYOUT */
+  .page { padding: 28px 32px; max-width: 1600px; margin: 0 auto; }
+
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* TWO-COL TOP */
+  .top-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 24px;
+  }
+  @media (max-width: 1100px) { .top-grid { grid-template-columns: 1fr; } }
+
+  /* CARDS */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+  }
+  .card-title {
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+
+  /* KPI ROW */
+  .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+  .kpi-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent-color, var(--accent));
+  }
+  .kpi-label { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  .kpi-value { font-size: 28px; font-weight: 800; letter-spacing: -1px; line-height: 1; }
+  .kpi-sub { font-size: 11px; font-family: 'DM Mono', monospace; margin-top: 5px; }
+  .kpi-sub.up { color: var(--accent3); }
+  .kpi-sub.down { color: var(--accent2); }
+
+  /* CHART CONTAINERS */
+  .chart-wrap { position: relative; }
+  .chart-wrap canvas { max-height: 220px; }
+  .chart-wrap.tall canvas { max-height: 260px; }
+
+  /* DONUT GRID */
+  .donut-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+  /* TABLE */
+  .data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .data-table th {
+    text-align: left;
+    padding: 8px 10px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+  .data-table td {
+    padding: 9px 10px;
+    border-bottom: 1px solid var(--border);
+    font-family: 'DM Mono', monospace;
+  }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+  /* SOURCE PILLS */
+  .pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* BOTTOM — AHREFS */
+  .bottom-section { margin-top: 24px; }
+  .ahrefs-grid { display: grid; grid-template-columns: 2fr 1.2fr 1fr; gap: 20px; }
+  @media (max-width: 1200px) { .ahrefs-grid { grid-template-columns: 1fr 1fr; } }
+
+  /* PAGE TRAFFIC TABLE */
+  .page-url {
+    max-width: 280px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--accent);
+    font-size: 11px;
+  }
+  .diff-pos { color: var(--accent3); }
+  .diff-neg { color: var(--accent2); }
+
+  /* TREND INDICATOR */
+  .trend-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+  }
+  .trend-chip.decline { background: rgba(255,94,138,0.12); color: var(--decline); border: 1px solid rgba(255,94,138,0.2); }
+  .trend-chip.growth { background: rgba(0,229,176,0.1); color: var(--growth); border: 1px solid rgba(0,229,176,0.2); }
+
+  /* ENGINE BAR */
+  .engine-bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .engine-bar-label { font-family: 'DM Mono', monospace; font-size: 11px; width: 80px; flex-shrink: 0; }
+  .engine-bar-track { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .engine-bar-fill { height: 100%; border-radius: 3px; transition: width 0.8s ease; }
+  .engine-bar-pct { font-family: 'DM Mono', monospace; font-size: 11px; width: 40px; text-align: right; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* COLUMN HEADERS */
+  .col-header {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .col-header-icon { font-size: 18px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="logo-mark">🎮</div>
+    <div>
+      <div class="header-title">AI Search Attribution Dashboard</div>
+      <div class="header-sub">whimsygames.co · 90-day window · May 2026</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="badge live">Live Data</div>
+    <div class="badge">Searchable · GA4 · Ahrefs</div>
+  </div>
+</header>
+
+<div class="page">
+
+  <!-- TOP 2-COL GRID -->
+  <div class="top-grid">
+
+    <!-- LEFT: SEARCHABLE AI COLUMN -->
+    <div>
+      <div class="section-label">🤖 Searchable MCP — AI Brand Visibility</div>
+
+      <!-- KPIs -->
+      <div class="kpi-row" style="margin-bottom:20px;">
+        <div class="kpi-card" style="--accent-color:#6c63ff">
+          <div class="kpi-label">Visibility Score</div>
+          <div class="kpi-value" style="color:#6c63ff">18.8</div>
+          <div class="kpi-sub down">▼ 3.1 pts (90d)</div>
+        </div>
+        <div class="kpi-card" style="--accent-color:#ff5e8a">
+          <div class="kpi-label">Mention Rate</div>
+          <div class="kpi-value" style="color:#ff5e8a">17.5%</div>
+          <div class="kpi-sub down">▼ Declining trend</div>
+        </div>
+        <div class="kpi-card" style="--accent-color:#00e5b0">
+          <div class="kpi-label">Brand Citations</div>
+          <div class="kpi-value" style="color:#00e5b0">4,144</div>
+          <div class="kpi-sub" style="color:var(--muted)">across 3 engines</div>
+        </div>
+        <div class="kpi-card" style="--accent-color:#ffb64d">
+          <div class="kpi-label">Avg Position</div>
+          <div class="kpi-value" style="color:#ffb64d">5.1</div>
+          <div class="kpi-sub" style="color:var(--muted)">in tracked topics</div>
+        </div>
+      </div>
+
+      <!-- Monthly Trend -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-title">Visibility Score · Monthly Trend</div>
+        <div class="chart-wrap">
+          <canvas id="visibilityTrend" width="1292" height="440" style="display: block; box-sizing: border-box; height: 220px; width: 646px;"></canvas>
+        </div>
+      </div>
+
+      <!-- Per-engine brand presence -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-title">Brand Presence by AI Engine</div>
+        <div style="margin-top:8px;">
+          <div class="engine-bar-row">
+            <div class="engine-bar-label">ChatGPT</div>
+            <div class="engine-bar-track"><div class="engine-bar-fill" style="width:21.5%;background:#10a37f;"></div></div>
+            <div class="engine-bar-pct" style="color:#10a37f">21.5%</div>
+          </div>
+          <div class="engine-bar-row">
+            <div class="engine-bar-label">Perplexity</div>
+            <div class="engine-bar-track"><div class="engine-bar-fill" style="width:19.9%;background:#20b2aa;"></div></div>
+            <div class="engine-bar-pct" style="color:#20b2aa">19.9%</div>
+          </div>
+          <div class="engine-bar-row">
+            <div class="engine-bar-label">AI Overview</div>
+            <div class="engine-bar-track"><div class="engine-bar-fill" style="width:11.1%;background:#4285f4;"></div></div>
+            <div class="engine-bar-pct" style="color:#4285f4">11.1%</div>
+          </div>
+          <div style="margin-top:14px;">
+            <div class="card-title" style="margin-bottom:12px;">Citations Distribution</div>
+            <div class="chart-wrap" style="height:140px;">
+              <canvas id="engineDonut" width="280" height="280" style="display: block; box-sizing: border-box; height: 140px; width: 140px;"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Topic Coverage -->
+      <div class="card">
+        <div class="card-title">Topic Coverage (81 topics)</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;">
+          <div style="text-align:center;">
+            <div style="font-size:22px;font-weight:800;color:#00e5b0">1</div>
+            <div style="font-size:10px;font-family:&#39;DM Mono&#39;,monospace;color:var(--muted);margin-top:3px;">STRONG</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-size:22px;font-weight:800;color:#ffb64d">9</div>
+            <div style="font-size:10px;font-family:&#39;DM Mono&#39;,monospace;color:var(--muted);margin-top:3px;">AVERAGE</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-size:22px;font-weight:800;color:#ff5e8a">9</div>
+            <div style="font-size:10px;font-family:&#39;DM Mono&#39;,monospace;color:var(--muted);margin-top:3px;">WEAK</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-size:22px;font-weight:800;color:var(--muted)">62</div>
+            <div style="font-size:10px;font-family:&#39;DM Mono&#39;,monospace;color:var(--muted);margin-top:3px;">MISSING</div>
+          </div>
+        </div>
+        <div class="chart-wrap" style="height:70px;">
+          <canvas id="topicBar" width="280" height="140" style="display: block; box-sizing: border-box; height: 70px; width: 140px;"></canvas>
+        </div>
+        <div style="margin-top:14px;">
+          <div class="card-title" style="margin-bottom:10px;">Top Competitor (Juego Studio dominates)</div>
+          <table class="data-table">
+            <thead><tr><th>Topic</th><th>Mention%</th><th>Platforms</th><th>#1 Competitor</th></tr></thead>
+            <tbody>
+              <tr><td>Game Porting 🏆</td><td><span style="color:var(--accent3)">83%</span></td><td>3 engines</td><td>Juego Studio</td></tr>
+              <tr><td>Live Ops</td><td><span style="color:var(--accent3)">67%</span></td><td>3 engines</td><td>Stepico Dev</td></tr>
+              <tr><td>Game Outsourcing</td><td><span style="color:var(--accent4)">31%</span></td><td>3 engines</td><td>Juego Studio</td></tr>
+              <tr><td>Unity Dev</td><td><span style="color:var(--accent4)">33%</span></td><td>1 engine</td><td>Azumo</td></tr>
+              <tr><td>Mobile Dev</td><td><span style="color:var(--accent4)">33%</span></td><td>1 engine</td><td>Juego Studio</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: GA4 AI REFERRAL COLUMN -->
+    <div>
+      <div class="section-label">📊 GA4 Supermetrics — AI Referral Traffic (90d)</div>
+
+      <!-- GA4 KPIs -->
+      <div class="kpi-row" style="margin-bottom:20px;">
+        <div class="kpi-card" style="--accent-color:#10a37f">
+          <div class="kpi-label">Sessions</div>
+          <div class="kpi-value" style="color:#10a37f">295</div>
+          <div class="kpi-sub" style="color:var(--muted)">from AI sources</div>
+        </div>
+        <div class="kpi-card" style="--accent-color:#4285f4">
+          <div class="kpi-label">Users</div>
+          <div class="kpi-value" style="color:#4285f4">162</div>
+          <div class="kpi-sub" style="color:var(--muted)">unique visitors</div>
+        </div>
+        <div class="kpi-card" style="--accent-color:#ffb64d">
+          <div class="kpi-label">Conversions</div>
+          <div class="kpi-value" style="color:#ffb64d">26</div>
+          <div class="kpi-sub up">▲ 8.8% conv rate</div>
+        </div>
+        <div class="kpi-card" style="--accent-color:#ff5e8a">
+          <div class="kpi-label">Conv Rate</div>
+          <div class="kpi-value" style="color:#ff5e8a">8.8%</div>
+          <div class="kpi-sub up">↑ vs organic avg</div>
+        </div>
+      </div>
+
+      <!-- Daily Sessions Area Chart -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-title">Daily Sessions by AI Source</div>
+        <div class="chart-wrap tall">
+          <canvas id="dailySessions" width="1292" height="520" style="display: block; box-sizing: border-box; height: 260px; width: 646px;"></canvas>
+        </div>
+      </div>
+
+      <!-- Source Mix + Table -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="donut-grid">
+          <div>
+            <div class="card-title">Source Mix</div>
+            <div class="chart-wrap" style="height:160px;">
+              <canvas id="sourceMix" width="320" height="320" style="display: block; box-sizing: border-box; height: 160px; width: 160px;"></canvas>
+            </div>
+          </div>
+          <div>
+            <div class="card-title">Source Performance</div>
+            <table class="data-table">
+              <thead><tr><th>Source</th><th>Sess</th><th>Conv</th><th>CVR</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td><span class="pill" style="background:rgba(16,163,127,0.15);color:#10a37f">ChatGPT</span></td>
+                  <td>231</td><td>24</td><td><span style="color:var(--accent3)">10.4%</span></td>
+                </tr>
+                <tr>
+                  <td><span class="pill" style="background:rgba(66,133,244,0.15);color:#4285f4">Gemini</span></td>
+                  <td>33</td><td>2</td><td><span style="color:var(--accent4)">6.1%</span></td>
+                </tr>
+                <tr>
+                  <td><span class="pill" style="background:rgba(32,178,170,0.15);color:#20b2aa">Perplexity</span></td>
+                  <td>12</td><td>0</td><td><span style="color:var(--muted)">0%</span></td>
+                </tr>
+                <tr>
+                  <td><span class="pill" style="background:rgba(217,119,6,0.15);color:#d97706">Claude</span></td>
+                  <td>12</td><td>0</td><td><span style="color:var(--muted)">0%</span></td>
+                </tr>
+                <tr>
+                  <td><span class="pill" style="background:rgba(124,58,237,0.15);color:#7c3aed">Copilot</span></td>
+                  <td>5</td><td>1</td><td><span style="color:var(--accent3)">20%</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Daily Conversions Line -->
+      <div class="card">
+        <div class="card-title">Daily Conversions by AI Source</div>
+        <div class="chart-wrap tall">
+          <canvas id="dailyConversions" width="1292" height="520" style="display: block; box-sizing: border-box; height: 260px; width: 646px;"></canvas>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- BOTTOM: AHREFS ORGANIC -->
+  <div class="bottom-section">
+    <div class="section-label">🔗 Ahrefs — Organic Traffic Intelligence</div>
+    <div class="ahrefs-grid">
+
+      <!-- Organic traffic history -->
+      <div class="card">
+        <div class="card-title">Organic Traffic · 90-Day Weekly (Feb–May 2026)</div>
+        <div class="chart-wrap tall">
+          <canvas id="orgTrafficHistory" width="600" height="300" style="display: block; box-sizing: border-box; height: 150px; width: 300px;"></canvas>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;">
+          <span class="trend-chip decline">▼ -27.8% over 90 days</span>
+          <span class="trend-chip decline">▼ 643 → 465 weekly traffic</span>
+          <span class="trend-chip growth">Peak: 752 (w/o Feb 23)</span>
+        </div>
+      </div>
+
+      <!-- Top growing pages -->
+      <div class="card">
+        <div class="card-title">🚀 Traffic Growth Pages (vs Feb 2026)</div>
+        <table class="data-table">
+          <thead><tr><th>Page</th><th>Now</th><th>Δ</th></tr></thead>
+          <tbody id="growthPages"><tr><td title="casino games developer" style="font-size:10px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--accent)">igaming…/casino-game-development/</td><td>84</td><td><span class="diff-pos">+80</span></td></tr><tr><td title="build your own casino" style="font-size:10px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--accent)">igaming…/casino-game-dev-cost/</td><td>63</td><td><span class="diff-pos">+51</span></td></tr><tr><td title="metaverse game dev co." style="font-size:10px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--accent)">…/metaverse-game-dev-companies/</td><td>54</td><td><span class="diff-pos">+28</span></td></tr><tr><td title="game mechanics" style="font-size:10px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--accent)">…/game-mechanics-guide/</td><td>16</td><td><span class="diff-pos">+14</span></td></tr><tr><td title="mobile slots" style="font-size:10px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--accent)">igaming…/mobile-game-slots/</td><td>19</td><td><span class="diff-pos">+11</span></td></tr><tr><td title="slot machine developers" style="font-size:10px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--accent)">igaming…/top-slot-game-companies/</td><td>7</td><td><span class="diff-pos">+7</span></td></tr><tr><td title="game art outsourcing" style="font-size:10px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--accent)">…/game-art-outsourcing-costs/</td><td>7</td><td><span class="diff-pos">+7</span></td></tr><tr><td title="mobile game dev software" style="font-size:10px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--accent)">…/top-15-mobile-game-engines/</td><td>5</td><td><span class="diff-pos">+5</span></td></tr></tbody>
+        </table>
+      </div>
+
+      <!-- Top declining pages -->
+      <div class="card">
+        <div class="card-title">📉 Traffic Decline Pages (vs Feb 2026)</div>
+        <table class="data-table">
+          <thead><tr><th>Page</th><th>Now</th><th>Δ</th></tr></thead>
+          <tbody id="declinePages"><tr><td title="whimsy games" style="font-size:10px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--accent)">whimsygames.co/</td><td>108</td><td><span class="diff-neg">-43</span></td></tr><tr><td title="hire 2d artists" style="font-size:10px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--accent)">…/hire-2d-artists/</td><td>19</td><td><span class="diff-neg">-19</span></td></tr><tr><td title="ue4 vs ue5" style="font-size:10px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--accent)">…/unreal-engine-4-vs-5/</td><td>33</td><td><span class="diff-neg">-16</span></td></tr><tr><td title="nft games android" style="font-size:10px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--accent)">…/top-15-best-nft-games-android/</td><td>5</td><td><span class="diff-neg">-6</span></td></tr><tr><td title="british game devs" style="font-size:10px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--accent)">…/top-gaming-companies-uk/</td><td>4</td><td><span class="diff-neg">-6</span></td></tr></tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─────────────────────────────────────────
+// DATA
+// ─────────────────────────────────────────
+
+// Visibility score history (monthly averaged from daily data)
+const visibilityData = {
+  labels: ['Feb','Mar','Apr','May'],
+  scores: [19.6, 19.5, 13.5, 18.8]
+};
+
+// GA4 raw data
+const rawGA4 = [
+  ["2026-02-03","chatgpt.com",6,3,1],["2026-02-03","copilot.com",2,1,0],["2026-02-03","gemini.google.com",1,1,0],
+  ["2026-02-04","chatgpt.com",2,2,0],["2026-02-05","chatgpt.com",3,3,0],["2026-02-05","gemini.google.com",1,1,0],
+  ["2026-02-06","chatgpt.com",4,3,0],["2026-02-06","perplexity",1,1,0],["2026-02-07","perplexity.ai",2,1,0],
+  ["2026-02-08","chatgpt.com",1,1,0],["2026-02-09","chatgpt.com",1,1,0],["2026-02-10","chatgpt.com",2,2,0],
+  ["2026-02-11","gemini.google.com",3,2,0],["2026-02-12","chatgpt.com",2,2,0],["2026-02-12","gemini.google.com",3,2,0],
+  ["2026-02-12","perplexity",1,1,0],["2026-02-13","chatgpt.com",4,4,1],["2026-02-15","perplexity.ai",1,1,0],
+  ["2026-02-16","chatgpt.com",3,2,0],["2026-02-17","chatgpt.com",1,1,0],["2026-02-17","perplexity",1,1,0],
+  ["2026-02-18","chatgpt.com",1,1,0],["2026-02-18","claude.ai",1,1,0],["2026-02-18","gemini.google.com",1,1,0],
+  ["2026-02-19","claude.ai",2,1,0],["2026-02-20","gemini.google.com",2,1,0],["2026-02-21","chatgpt.com",1,1,0],
+  ["2026-02-22","chatgpt.com",1,1,0],["2026-02-22","gemini.google.com",1,1,0],["2026-02-23","claude.ai",3,2,0],
+  ["2026-02-23","gemini.google.com",1,1,0],["2026-02-24","chatgpt.com",1,1,1],["2026-02-24","claude.ai",1,1,0],
+  ["2026-02-24","gemini.google.com",3,2,1],["2026-02-25","chatgpt.com",5,4,1],["2026-02-25","copilot.com",1,1,1],
+  ["2026-02-25","gemini.google.com",1,1,0],["2026-02-26","chatgpt.com",3,3,0],
+  ["2026-03-02","chatgpt.com",4,3,0],["2026-03-02","gemini.google.com",1,1,0],
+  ["2026-03-03","chatgpt.com",2,2,0],["2026-03-03","gemini.google.com",1,1,0],
+  ["2026-03-04","chatgpt.com",2,2,0],["2026-03-05","chatgpt.com",2,2,0],["2026-03-05","perplexity.ai",1,1,0],
+  ["2026-03-06","chatgpt.com",1,1,0],["2026-03-06","claude.ai",1,1,0],["2026-03-06","gemini.google.com",2,1,0],
+  ["2026-03-08","copilot.com",1,1,0],["2026-03-09","gemini.google.com",1,1,0],
+  ["2026-03-10","chatgpt.com",4,3,2],["2026-03-10","claude.ai",1,1,0],["2026-03-10","gemini.google.com",1,1,1],
+  ["2026-03-11","chatgpt.com",8,3,3],["2026-03-11","gemini.google.com",1,1,0],
+  ["2026-03-12","gemini.google.com",1,1,0],["2026-03-13","perplexity.ai",2,1,0],["2026-03-15","perplexity.ai",1,1,0],
+  ["2026-03-16","chatgpt.com",3,2,0],["2026-03-17","chatgpt.com",6,2,0],["2026-03-18","chatgpt.com",5,1,0],
+  ["2026-03-18","copilot.com",1,1,0],["2026-03-19","chatgpt.com",10,4,0],["2026-03-20","chatgpt.com",1,1,0],
+  ["2026-03-22","chatgpt.com",1,1,0],["2026-03-23","chatgpt.com",3,3,0],["2026-03-25","chatgpt.com",6,3,0],
+  ["2026-03-25","claude.ai",2,2,0],["2026-03-26","chatgpt.com",12,3,4],["2026-03-27","chatgpt.com",3,2,1],
+  ["2026-03-30","chatgpt.com",6,2,0],["2026-03-31","chatgpt.com",6,1,2],["2026-03-31","gemini.google.com",2,1,0],
+  ["2026-04-01","chatgpt.com",1,1,0],["2026-04-01","claude.ai",1,1,0],["2026-04-01","gemini.google.com",3,3,0],
+  ["2026-04-02","chatgpt.com",3,2,0],["2026-04-03","chatgpt.com",1,1,0],["2026-04-04","chatgpt.com",1,1,0],
+  ["2026-04-05","gemini.google.com",1,1,0],["2026-04-06","gemini.google.com",2,2,0],
+  ["2026-04-07","chatgpt.com",1,1,0],["2026-04-14","chatgpt.com",2,1,0],["2026-04-15","gemini.google.com",1,1,0],
+  ["2026-04-17","chatgpt.com",1,1,0],["2026-04-18","chatgpt.com",1,1,0],["2026-04-19","chatgpt.com",1,1,0],
+  ["2026-04-20","chatgpt.com",1,1,0],["2026-04-20","gemini.google.com",1,1,0],["2026-04-20","perplexity.ai",1,1,0],
+  ["2026-04-21","chatgpt.com",9,3,8],["2026-04-21","perplexity.ai",1,1,0],
+  ["2026-04-22","chatgpt.com",3,3,0],["2026-04-22","gemini.google.com",1,1,0],
+  ["2026-04-23","chatgpt.com",13,6,0],["2026-04-24","chatgpt.com",4,2,1],["2026-04-24","claude.ai",1,1,0],
+  ["2026-04-25","chatgpt.com",4,1,0],["2026-04-26","chatgpt.com",1,1,0],["2026-04-27","chatgpt.com",4,1,0],
+  ["2026-04-28","chatgpt.com",7,2,1],["2026-04-29","chatgpt.com",7,2,0],["2026-04-29","perplexity.ai",1,1,0],
+  ["2026-04-30","chatgpt.com",11,2,0],["2026-04-30","gemini.google.com",1,1,0],["2026-04-30","perplexity.ai",1,1,0],
+  ["2026-05-01","chatgpt.com",6,1,0],["2026-05-02","chatgpt.com",1,1,0],["2026-05-02","gemini.google.com",1,1,0]
+];
+
+function normalizeSource(s) {
+  if (s.includes('chatgpt') || s.includes('openai')) return 'ChatGPT';
+  if (s.includes('gemini')) return 'Gemini';
+  if (s.includes('perplexity')) return 'Perplexity';
+  if (s.includes('claude')) return 'Claude';
+  if (s.includes('copilot')) return 'Copilot';
+  return 'Other';
+}
+
+// Aggregate by date & source
+const dateMap = {};
+const sourceColors = { ChatGPT:'#10a37f', Gemini:'#4285f4', Perplexity:'#20b2aa', Claude:'#d97706', Copilot:'#7c3aed' };
+const sources = ['ChatGPT','Gemini','Perplexity','Claude','Copilot'];
+
+rawGA4.forEach(([date, src, sessions,, convs]) => {
+  const norm = normalizeSource(src);
+  if (!dateMap[date]) dateMap[date] = {};
+  if (!dateMap[date][norm]) dateMap[date][norm] = { sessions:0, conversions:0 };
+  dateMap[date][norm].sessions += sessions;
+  dateMap[date][norm].conversions += convs;
+});
+
+const allDates = Object.keys(dateMap).sort();
+
+// Ahrefs pages data
+const pages = [
+  {url:"whimsygames.co/",curr:108,prev:151,diff:-43,kw:"whimsy games"},
+  {url:"igaming…/casino-game-development/",curr:84,prev:4,diff:80,kw:"casino games developer"},
+  {url:"igaming…/casino-game-dev-cost/",curr:63,prev:12,diff:51,kw:"build your own casino"},
+  {url:"…/metaverse-game-dev-companies/",curr:54,prev:26,diff:28,kw:"metaverse game dev co."},
+  {url:"…/unreal-engine-4-vs-5/",curr:33,prev:49,diff:-16,kw:"ue4 vs ue5"},
+  {url:"igaming…/mobile-game-slots/",curr:19,prev:8,diff:11,kw:"mobile slots"},
+  {url:"…/hire-2d-artists/",curr:19,prev:38,diff:-19,kw:"hire 2d artists"},
+  {url:"…/game-mechanics-guide/",curr:16,prev:2,diff:14,kw:"game mechanics"},
+  {url:"igaming…/top-slot-game-companies/",curr:7,prev:0,diff:7,kw:"slot machine developers"},
+  {url:"…/game-art-outsourcing-costs/",curr:7,prev:0,diff:7,kw:"game art outsourcing"},
+  {url:"…/top-15-mobile-game-engines/",curr:5,prev:0,diff:5,kw:"mobile game dev software"},
+  {url:"…/top-15-best-nft-games-android/",curr:5,prev:11,diff:-6,kw:"nft games android"},
+  {url:"…/top-gaming-companies-uk/",curr:4,prev:10,diff:-6,kw:"british game devs"},
+];
+
+const growthPages = pages.filter(p=>p.diff>0).sort((a,b)=>b.diff-a.diff);
+const declinePages = pages.filter(p=>p.diff<0).sort((a,b)=>a.diff-b.diff);
+
+// ─────────────────────────────────────────
+// RENDER TABLES
+// ─────────────────────────────────────────
+function renderPageTable(id, data, isGrowth) {
+  const tbody = document.getElementById(id);
+  data.forEach(p => {
+    const tr = document.createElement('tr');
+    const diff = isGrowth ? `<span class="diff-pos">+${p.diff}</span>` : `<span class="diff-neg">${p.diff}</span>`;
+    tr.innerHTML = `<td title="${p.kw}" style="font-size:10px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--accent)">${p.url}</td><td>${p.curr}</td><td>${diff}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+renderPageTable('growthPages', growthPages, true);
+renderPageTable('declinePages', declinePages, false);
+
+// ─────────────────────────────────────────
+// CHART DEFAULTS
+// ─────────────────────────────────────────
+Chart.defaults.color = '#636b8a';
+Chart.defaults.borderColor = '#22263a';
+Chart.defaults.font.family = "'DM Mono', monospace";
+Chart.defaults.font.size = 10;
+
+function monoTooltip(label) {
+  return {
+    backgroundColor: '#181b23',
+    borderColor: '#22263a',
+    borderWidth: 1,
+    titleColor: '#e8eaf6',
+    bodyColor: '#9aa3c0',
+    padding: 10,
+    cornerRadius: 6,
+    titleFont: { family: "'Syne',sans-serif", size: 12, weight: '600' },
+    bodyFont: { family: "'DM Mono',monospace", size: 11 },
+  };
+}
+
+// ─────────────────────────────────────────
+// 1. VISIBILITY TREND
+// ─────────────────────────────────────────
+new Chart(document.getElementById('visibilityTrend'), {
+  type: 'line',
+  data: {
+    labels: visibilityData.labels,
+    datasets: [{
+      label: 'Visibility Score',
+      data: visibilityData.scores,
+      borderColor: '#6c63ff',
+      backgroundColor: 'rgba(108,99,255,0.08)',
+      borderWidth: 2,
+      fill: true,
+      tension: 0.4,
+      pointBackgroundColor: '#6c63ff',
+      pointRadius: 5,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false }, tooltip: { ...monoTooltip() } },
+    scales: {
+      y: { min: 0, max: 30, grid: { color: '#22263a' }, ticks: { stepSize: 10 } },
+      x: { grid: { display: false } }
+    }
+  }
+});
+
+// ─────────────────────────────────────────
+// 2. ENGINE DONUT
+// ─────────────────────────────────────────
+new Chart(document.getElementById('engineDonut'), {
+  type: 'doughnut',
+  data: {
+    labels: ['ChatGPT', 'Perplexity', 'AI Overview'],
+    datasets: [{
+      data: [2015, 1376, 753],
+      backgroundColor: ['#10a37f', '#20b2aa', '#4285f4'],
+      borderWidth: 0,
+      hoverOffset: 4,
+    }]
+  },
+  options: {
+    responsive: true,
+    cutout: '68%',
+    plugins: {
+      legend: { position: 'right', labels: { boxWidth: 10, padding: 10, color: '#9aa3c0' } },
+      tooltip: { ...monoTooltip() }
+    }
+  }
+});
+
+// ─────────────────────────────────────────
+// 3. TOPIC BAR (stacked horizontal)
+// ─────────────────────────────────────────
+new Chart(document.getElementById('topicBar'), {
+  type: 'bar',
+  data: {
+    labels: ['Topics'],
+    datasets: [
+      { label: 'Strong', data: [1], backgroundColor: '#00e5b0' },
+      { label: 'Average', data: [9], backgroundColor: '#ffb64d' },
+      { label: 'Weak', data: [9], backgroundColor: '#ff5e8a' },
+      { label: 'Missing', data: [62], backgroundColor: '#22263a' },
+    ]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true,
+    plugins: {
+      legend: { position: 'top', labels: { boxWidth: 10, padding: 12, color: '#9aa3c0' } },
+      tooltip: { ...monoTooltip() }
+    },
+    scales: {
+      x: { stacked: true, display: false },
+      y: { stacked: true, display: false }
+    }
+  }
+});
+
+// ─────────────────────────────────────────
+// 4. DAILY SESSIONS STACKED AREA
+// ─────────────────────────────────────────
+(function() {
+  const datasets = sources.map(src => ({
+    label: src,
+    data: allDates.map(d => (dateMap[d]?.[src]?.sessions || 0)),
+    backgroundColor: sourceColors[src] + '88',
+    borderColor: sourceColors[src],
+    borderWidth: 1.5,
+    fill: true,
+    tension: 0.3,
+    pointRadius: 0,
+  }));
+
+  new Chart(document.getElementById('dailySessions'), {
+    type: 'line',
+    data: { labels: allDates.map(d => d.slice(5)), datasets },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'top', labels: { boxWidth: 10, padding: 10, color: '#9aa3c0' } },
+        tooltip: { ...monoTooltip(), mode: 'index', intersect: false }
+      },
+      scales: {
+        y: { stacked: true, grid: { color: '#22263a' } },
+        x: { grid: { display: false }, ticks: { maxTicksLimit: 12 } }
+      }
+    }
+  });
+})();
+
+// ─────────────────────────────────────────
+// 5. SOURCE MIX DONUT
+// ─────────────────────────────────────────
+(function() {
+  const totals = {};
+  sources.forEach(s => totals[s] = 0);
+  rawGA4.forEach(([,src,,, _]) => {
+    const n = normalizeSource(src);
+    if (totals[n] !== undefined) totals[n] += _[0] || 0;
+  });
+  // Recalculate sessions
+  rawGA4.forEach(([,src, sess]) => {
+    const n = normalizeSource(src);
+    if (totals[n] !== undefined) totals[n] += 0; // already done above? no
+  });
+  const sessMap = {};
+  sources.forEach(s => sessMap[s] = 0);
+  rawGA4.forEach(([,src, sess]) => { const n = normalizeSource(src); if(sessMap[n]!==undefined) sessMap[n]+=sess; });
+
+  new Chart(document.getElementById('sourceMix'), {
+    type: 'doughnut',
+    data: {
+      labels: sources,
+      datasets: [{
+        data: sources.map(s => sessMap[s]),
+        backgroundColor: sources.map(s => sourceColors[s]),
+        borderWidth: 0,
+        hoverOffset: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      cutout: '65%',
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 9, padding: 8, color: '#9aa3c0', font: { size: 10 } } },
+        tooltip: { ...monoTooltip() }
+      }
+    }
+  });
+})();
+
+// ─────────────────────────────────────────
+// 6. DAILY CONVERSIONS LINE
+// ─────────────────────────────────────────
+(function() {
+  const convDatasets = sources.map(src => ({
+    label: src,
+    data: allDates.map(d => (dateMap[d]?.[src]?.conversions || 0)),
+    borderColor: sourceColors[src],
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+    tension: 0.3,
+    pointRadius: 3,
+    pointHoverRadius: 5,
+  }));
+
+  new Chart(document.getElementById('dailyConversions'), {
+    type: 'line',
+    data: { labels: allDates.map(d => d.slice(5)), datasets: convDatasets },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'top', labels: { boxWidth: 10, padding: 10, color: '#9aa3c0' } },
+        tooltip: { ...monoTooltip(), mode: 'index', intersect: false }
+      },
+      scales: {
+        y: { grid: { color: '#22263a' }, beginAtZero: true },
+        x: { grid: { display: false }, ticks: { maxTicksLimit: 12 } }
+      }
+    }
+  });
+})();
+
+// ─────────────────────────────────────────
+// 7. AHREFS ORGANIC HISTORY — 90-day weekly
+// ─────────────────────────────────────────
+(function() {
+  const weeklyLabels = ['Feb 02','Feb 09','Feb 16','Feb 23','Mar 02','Mar 09','Mar 16','Mar 23','Mar 30','Apr 06','Apr 13','Apr 20','Apr 27'];
+  const weeklyValues = [643,679,750,752,712,648,635,632,589,611,537,494,465];
+  const pointColors = weeklyValues.map(v => v >= 740 ? '#00e5b0' : v <= 540 ? '#ff5e8a' : '#6c63ff');
+
+  new Chart(document.getElementById('orgTrafficHistory'), {
+    type: 'line',
+    data: {
+      labels: weeklyLabels,
+      datasets: [{
+        label: 'Organic Traffic (weekly)',
+        data: weeklyValues,
+        borderColor: '#6c63ff',
+        backgroundColor: ctx => {
+          const g = ctx.chart.ctx.createLinearGradient(0,0,0,260);
+          g.addColorStop(0,'rgba(108,99,255,0.28)');
+          g.addColorStop(1,'rgba(108,99,255,0.02)');
+          return g;
+        },
+        borderWidth: 2,
+        fill: true,
+        tension: 0.35,
+        pointBackgroundColor: pointColors,
+        pointBorderColor: pointColors,
+        pointRadius: 5,
+        pointHoverRadius: 7,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          ...monoTooltip(),
+          callbacks: {
+            label: ctx => ` ${ctx.parsed.y.toLocaleString()} est. weekly visits`
+          }
+        }
+      },
+      scales: {
+        y: {
+          grid: { color: '#22263a' },
+          min: 400,
+          ticks: { callback: v => v.toLocaleString() }
+        },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+})();
+</script>
+
+
+</body></html>
